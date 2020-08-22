@@ -1,5 +1,6 @@
 const express = require('express')
 const router = express.Router()
+const { ObjectId } = require('mongoose').Types
 
 const Todo = require('../../models/Todo')
 
@@ -48,6 +49,47 @@ router.put('/edit', async (req, res) => {
     const todo = await Todo.findOneAndUpdate({ _id: id }, { title, completed })
 
     res.status(200).json(todo)
+  } catch(err) {
+    console.log(err)
+  }
+})
+
+// edit todos
+router.put('/editmany', async (req, res) => {
+  const { ids, completed } = req.body
+
+  try {
+    await Todo.update(
+      {
+        _id: {
+          $in: ids
+        }
+      },
+      {
+        $set: {
+          completed
+        }
+      },
+      {
+        multi: true
+      }
+    )
+  } catch(err) {
+    console.log(err)
+  }
+})
+
+// clear completed
+router.delete('/deletemany', async (req, res) => {
+  try {
+    await Todo.deleteMany(
+      {
+        completed: true
+      },
+      {
+        multi: true
+      }
+    )
   } catch(err) {
     console.log(err)
   }

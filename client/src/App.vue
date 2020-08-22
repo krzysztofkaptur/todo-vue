@@ -14,7 +14,7 @@
       <section class="todos">
         <Todo 
           v-for="todo in filteredTodos" 
-          :key="todo.id" 
+          :key="todo._id" 
           :todo="todo" 
           @deleteTodo="deleteTodo" 
           @handleCheckbox="handleCheckbox"
@@ -35,7 +35,7 @@
 </template>
 
 <script>
-import { v4 as uuidv4 } from 'uuid'
+import axios from 'axios'
 
 import Todo from './components/Todo'
 
@@ -66,22 +66,19 @@ export default {
     }
   },
   methods: {
-    getFromLocalStorage() {
-      return JSON.parse(localStorage.getItem('todos'))
-    },
-    setInLocalStorage() {
-      localStorage.setItem('todos', JSON.stringify(this.todos))
+    fetchTodos() {
+      return axios.get('http://localhost:5000/todos')
     },
     addTodo() {
       const newTodo = {
-        id: uuidv4(),
         title: this.todo,
         completed: false
       }
 
-      this.todos = [...this.todos, newTodo]
-      
-      this.setInLocalStorage()
+      axios
+        .post('http://localhost:5000/todos/create', newTodo)
+        .then(() => this.fetchTodos())
+        .then(res => this.todos = res.data)
 
       this.clearInput()
     },
@@ -89,43 +86,50 @@ export default {
       this.todo = ''
     },
     deleteTodo(id) {
-      const newTodos = this.todos.filter(todo => todo.id !== id)
+      this.todos = this.todos.filter(todo => todo._id !== id)
 
-      this.updateTodos(newTodos)
+      axios
+        .delete('http://localhost:5000/todos/delete', {data: { id }})
     },
-    handleCheckbox({ id, completed }) {
-      const newTodos = this.todos.map(todo => todo.id === id ? {...todo, completed} : todo)
-
-      this.updateTodos(newTodos)
+    handleCheckbox({ id, completed, title }) {
+      axios
+        .put('http://localhost:5000/todos/edit', { id, completed, title })
+        .then(() => {
+          this.todos = this.todos.map(todo => todo._id === id ? {...todo, completed} : todo)
+        })
     },
     markAllComplete() {
       const notCompletedTodosCount = this.todos.filter(todo => !todo.completed).length
 
+      const ids = this.todos.reduce((prev, current) => {
+          return [...prev, current._id]
+        }, [])
+
       if(notCompletedTodosCount) {
-        const newTodos = this.todos.map(todo => ({ ...todo, completed: true }))
-        this.updateTodos(newTodos)
+        this.todos = this.todos.map(todo => ({ ...todo, completed: true }))
+        axios
+          .put('http://localhost:5000/todos/editmany', { ids, completed: true })
       } else {
-        const newTodos = this.todos.map(todo => ({ ...todo, completed: false }))
-        this.updateTodos(newTodos)
+        this.todos = this.todos.map(todo => ({ ...todo, completed: false }))
+        axios
+          .put('http://localhost:5000/todos/editmany', { ids, completed: false })
       }
     },
     clearCompleted() {
-      const newTodos = this.todos.filter(todo => !todo.completed)
-      
-      this.updateTodos(newTodos)
-    },
-    editTodo({ id, newTitle }) {
-      const newTodos = this.todos.map(todo => todo.id === id ? {...todo, title: newTitle} : todo)
+      this.todos = this.todos.filter(todo => !todo.completed)
 
-      this.updateTodos(newTodos)
+      axios.delete('http://localhost:5000/todos/deletemany')
     },
-    updateTodos(arr) {
-      this.todos = arr
-      this.setInLocalStorage()
+    editTodo({ id, title }) {
+      axios
+        .put('http://localhost:5000/todos/edit', { id, title })
+        .then(() => {
+          this.todos = this.todos.map(todo => todo._id === id ? {...todo, title} : todo)
+        })
     }
   },
   mounted() {
-    this.todos = this.getFromLocalStorage() || []
+    this.fetchTodos().then(res => this.todos = res.data || [])
   }
 }
 </script>

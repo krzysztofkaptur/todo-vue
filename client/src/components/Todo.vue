@@ -7,8 +7,8 @@
       :value="todo.completed" 
       @change="handleCheckbox" 
       :checked="todo.completed"
-      :id="todo.id">
-      <label :for="todo.id" class="todo__label"></label>
+      :id="todo._id">
+      <label :for="todo._id" class="todo__label"></label>
       <h4 class="todo__title" @dblclick="editMode">{{ todo.title }}</h4>
       <button @click="deleteTodo" class="todo__delete"></button>
     </div>
@@ -36,10 +36,10 @@ export default {
   },
   methods: {
     deleteTodo() {
-      this.$emit('deleteTodo', this.todo.id)
+      this.$emit('deleteTodo', this.todo._id)
     },
     handleCheckbox() {
-      this.$emit('handleCheckbox', { id: this.todo.id, completed: !this.todo.completed })
+      this.$emit('handleCheckbox', { id: this.todo._id, completed: !this.todo.completed, title: this.todo.title })
     },
     handleChange(e) {
       this.newTodoTitle = e.target.value
@@ -49,7 +49,7 @@ export default {
     },
     editTodo() {
       if(this.newTodoTitle.trim()) {
-        this.$emit('editTodo', { id: this.todo.id, newTitle: this.newTodoTitle })
+        this.$emit('editTodo', { id: this.todo._id, title: this.newTodoTitle })
         this.edit = false
       }
     }
